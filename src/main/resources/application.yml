@@ -2,6 +2,9 @@ micronaut:
   application:
     name: body-db
 
+bodydb:
+  api-key: ${BODYDB_API_KEY:}
+
 datasources:
   default:
     url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:bodydb}

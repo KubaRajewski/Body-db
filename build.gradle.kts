@@ -30,8 +30,12 @@ dependencies {
     testImplementation("io.micronaut:micronaut-http-client")
     testImplementation("io.micronaut.test:micronaut-test-junit5")
     testImplementation("org.assertj:assertj-core")
-    testImplementation("org.testcontainers:postgresql")
-    testImplementation("org.testcontainers:junit-jupiter")
+    testImplementation("org.testcontainers:postgresql") {
+        version { strictly("1.21.0") }
+    }
+    testImplementation("org.testcontainers:junit-jupiter") {
+        version { strictly("1.21.0") }
+    }
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
 }
 
@@ -51,4 +55,9 @@ micronaut {
         incremental(true)
         annotations("com.bodydb.*")
     }
+}
+
+tasks.test {
+    environment("DOCKER_API_VERSION", "1.44")
+    environment("TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE", "/var/run/docker.sock")
 }
