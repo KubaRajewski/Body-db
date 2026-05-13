@@ -6,6 +6,7 @@ import com.bodydb.exercise.repository.ExerciseSessionRepository;
 import com.bodydb.exercise.repository.ExerciseSetRepository;
 import com.bodydb.importer.dto.ExerciseImportDto;
 import com.bodydb.importer.dto.ImportResultDto;
+import com.bodydb.importer.dto.SimpleExerciseLogDto;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
 
@@ -57,5 +58,32 @@ public class ExerciseImportService {
         }
 
         return ImportResultDto.of(dto.sets().size(), 0);
+    }
+
+    /**
+     * Simple log: one exercise, N identical sets, rep range as string.
+     * Called by the iOS Shortcut (List → Choose → Ask for weight flow).
+     */
+    @Transactional
+    public ImportResultDto logExercise(SimpleExerciseLogDto dto) {
+        ExerciseSession session = new ExerciseSession();
+        session.setId(UUID.randomUUID());
+        session.setDate(dto.date() != null ? LocalDate.parse(dto.date()) : LocalDate.now());
+        session.setTitle(dto.exercise());
+        session.setNotes(dto.sets() + " sets × " + dto.repRange() + " reps @ " + dto.weightKg() + " kg");
+        sessionRepo.save(session);
+
+        for (int i = 1; i <= dto.sets(); i++) {
+            ExerciseSet set = new ExerciseSet();
+            set.setId(UUID.randomUUID());
+            set.setSessionId(session.getId());
+            set.setSetOrder(i);
+            set.setExerciseName(dto.exercise());
+            set.setWeightKg(BigDecimal.valueOf(dto.weightKg()));
+            set.setNotes(dto.repRange() + " reps");
+            setRepo.save(set);
+        }
+
+        return ImportResultDto.of(dto.sets(), 0);
     }
 }

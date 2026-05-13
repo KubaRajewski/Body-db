@@ -23,12 +23,11 @@ dependencies {
     runtimeOnly("org.flywaydb:flyway-database-postgresql")
     implementation("io.micronaut.validation:micronaut-validation")
 
+    implementation("io.micronaut:micronaut-http-client")
+
     runtimeOnly("ch.qos.logback:logback-classic")
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("org.yaml:snakeyaml")
-
-    implementation("io.micronaut:micronaut-http-client")
-    implementation("io.micronaut:micronaut-scheduling")
 
     testImplementation("io.micronaut:micronaut-http-client")
     testImplementation("io.micronaut.test:micronaut-test-junit5")

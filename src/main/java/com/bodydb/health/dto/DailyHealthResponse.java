@@ -44,7 +44,7 @@ public record DailyHealthResponse(
             e.getHrvMs(),
             e.getSpo2Pct(),
             e.getRespiratoryRate(),
-            e.getWristTemperatureC(),
+            e.getWristTemperatureDeltaC(),
             e.getVo2Max(),
             e.getStandHours(),
             e.getExerciseMinutes(),

@@ -25,7 +25,7 @@ class DailyHealthRepositoryTest extends PostgresIntegrationTestSupport {
     }
 
     @Test
-    void insertFindByDateAndUpdate() {
+    void insertAndFindByDate() {
         DailyHealth dailyHealth = new DailyHealth();
         dailyHealth.setId(UUID.randomUUID());
         dailyHealth.setDate(LocalDate.of(2026, 4, 28));
@@ -34,40 +34,32 @@ class DailyHealthRepositoryTest extends PostgresIntegrationTestSupport {
         dailyHealth.setRestingHeartRate(52);
         dailyHealth.setHrvMs(new BigDecimal("47.50"));
 
+        dailyHealthRepository.save(dailyHealth);
+
+        DailyHealth found = dailyHealthRepository.findByDate(LocalDate.of(2026, 4, 28)).orElseThrow();
+        assertThat(found.getSteps()).isEqualTo(12_345);
+        assertThat(found.getActiveCalories()).isEqualTo(650);
+        assertThat(found.getHrvMs()).isEqualByComparingTo("47.50");
+    }
+
+    @Test
+    void updateViaEntityUpdate() {
+        DailyHealth dailyHealth = new DailyHealth();
+        dailyHealth.setId(UUID.randomUUID());
+        dailyHealth.setDate(LocalDate.of(2026, 4, 28));
+        dailyHealth.setSteps(1_000);
+
         DailyHealth saved = dailyHealthRepository.save(dailyHealth);
 
-        DailyHealth inserted = dailyHealthRepository.findByDate(LocalDate.of(2026, 4, 28)).orElseThrow();
-        assertThat(inserted.getId()).isEqualTo(saved.getId());
-        assertThat(inserted.getSteps()).isEqualTo(12_345);
-        assertThat(inserted.getActiveCalories()).isEqualTo(650);
-        assertThat(inserted.getHrvMs()).isEqualByComparingTo("47.50");
-
-        long updatedCount = dailyHealthRepository.updateDailyHealth(
-            saved.getId(),
-            LocalDate.of(2026, 4, 28),
-            15_000,
-            720,
-            null,
-            49,
-            new BigDecimal("55.25"),
-            null,
-            null,
-            null,
-            null,
-            10,
-            75,
-            460,
-            90,
-            80,
-            290,
-            15,
-            20,
-            null,
-            null,
-            null
-        );
-
-        assertThat(updatedCount).isEqualTo(1);
+        saved.setSteps(15_000);
+        saved.setActiveCalories(720);
+        saved.setRestingHeartRate(49);
+        saved.setHrvMs(new BigDecimal("55.25"));
+        saved.setStandHours(10);
+        saved.setExerciseMinutes(75);
+        saved.setSleepTotalMin(460);
+        saved.setMindfulMinutes(20);
+        dailyHealthRepository.update(saved);
 
         DailyHealth updated = dailyHealthRepository.findByDate(LocalDate.of(2026, 4, 28)).orElseThrow();
         assertThat(updated.getId()).isEqualTo(saved.getId());
