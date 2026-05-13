@@ -1,9 +1,25 @@
 micronaut:
   application:
     name: body-db
+  http:
+    client:
+      read-timeout: 60s
+  scheduler:
+    enabled: true
 
 bodydb:
   api-key: ${BODYDB_API_KEY:}
+
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:}
+  base-url: https://api.anthropic.com
+  model: claude-sonnet-4-6
+  version: "2023-06-01"
+
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+  chat-id: ${TELEGRAM_CHAT_ID:}
+  base-url: https://api.telegram.org
 
 datasources:
   default:

@@ -27,6 +27,9 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
     runtimeOnly("org.yaml:snakeyaml")
 
+    implementation("io.micronaut:micronaut-http-client")
+    implementation("io.micronaut:micronaut-scheduling")
+
     testImplementation("io.micronaut:micronaut-http-client")
     testImplementation("io.micronaut.test:micronaut-test-junit5")
     testImplementation("org.assertj:assertj-core")

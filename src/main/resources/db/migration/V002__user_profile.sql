@@ -1,0 +1,3 @@
+-- This file intentionally left empty.
+-- User profile migration is in V003__user_profile.sql
+-- V002 slot is taken by V002__add_health_fields.sql

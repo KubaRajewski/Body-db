@@ -2,14 +2,16 @@ package com.bodydb.health.domain;
 
 import io.micronaut.data.annotation.DateCreated;
 import io.micronaut.data.annotation.Id;
-import io.micronaut.data.annotation.MappedEntity;
 import io.micronaut.data.annotation.MappedProperty;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.UUID;
 
-@MappedEntity("workouts")
+/**
+ * @deprecated Use com.bodydb.workout.domain.Workout instead.
+ */
+@Deprecated
 public class Workout {
 
     @Id
