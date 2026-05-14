@@ -1,14 +1,43 @@
 <configuration>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-        <!-- encoders are assigned the type
-             ch.qos.logback.classic.encoder.PatternLayoutEncoder by default -->
         <encoder>
             <pattern>%cyan(%d{HH:mm:ss.SSS}) %gray([%thread]) %highlight(%-5level) %magenta(%logger{36}) - %msg%n</pattern>
         </encoder>
     </appender>
 
-    <root level="info">
-        <appender-ref ref="STDOUT" />
+    <!-- HTTP access log — every inbound request -->
+    <logger name="HTTP_ACCESS_LOG" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <!-- body-db application code — DEBUG to see everything -->
+    <logger name="com.bodydb" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <!-- Flyway migrations -->
+    <logger name="org.flywaydb" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <!-- HikariCP connection pool -->
+    <logger name="com.zaxxer.hikari" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <!-- Micronaut framework — keep at WARN to reduce noise, INFO for startup -->
+    <logger name="io.micronaut" level="INFO" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <!-- Netty — only errors -->
+    <logger name="io.netty" level="WARN" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <root level="WARN">
+        <appender-ref ref="STDOUT"/>
     </root>
+
 </configuration>

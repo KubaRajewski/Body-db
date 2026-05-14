@@ -8,14 +8,16 @@ import com.bodydb.workout.domain.Workout;
 import com.bodydb.workout.repository.WorkoutRepository;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.time.LocalDate;
-import java.util.List;
 import java.util.UUID;
 
 @Singleton
 public class WorkoutImportService {
+
+    private static final Logger log = LoggerFactory.getLogger(WorkoutImportService.class);
 
     private static final String HK_ACTIVE   = "HKQuantityTypeIdentifierActiveEnergyBurned";
     private static final String HK_HR       = "HKQuantityTypeIdentifierHeartRate";
@@ -28,19 +30,28 @@ public class WorkoutImportService {
 
     @Transactional
     public ImportResultDto importWorkouts(WorkoutExportDto dto) {
-        if (dto.workouts() == null) return ImportResultDto.of(0, 0);
+        if (dto.workouts() == null) {
+            log.warn("Workout import called with null workouts list");
+            return ImportResultDto.of(0, 0);
+        }
+
+        log.info("Starting workout import — {} workout(s) received", dto.workouts().size());
 
         int inserted = 0, skipped = 0;
         for (WorkoutEntry entry : dto.workouts()) {
-            // Use startDate as natural external key to deduplicate
             String externalId = entry.startDate();
             if (externalId != null && repo.findByExternalId(externalId).isPresent()) {
+                log.debug("Skipping duplicate workout: {} at {}", entry.activityType(), externalId);
                 skipped++;
                 continue;
             }
-            repo.save(toEntity(entry));
+            Workout w = toEntity(entry);
+            repo.save(w);
+            log.debug("Inserted workout: {} on {} ({} min)", entry.activityType(), w.getDate(), w.getDurationMin());
             inserted++;
         }
+
+        log.info("Workout import done — {} inserted, {} skipped (duplicates)", inserted, skipped);
         return ImportResultDto.of(inserted, skipped);
     }
 

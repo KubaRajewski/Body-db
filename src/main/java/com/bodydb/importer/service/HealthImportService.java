@@ -10,6 +10,8 @@ import com.bodydb.nutrition.domain.NutritionDaily;
 import com.bodydb.nutrition.repository.NutritionDailyRepository;
 import jakarta.inject.Singleton;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -20,6 +22,8 @@ import java.util.UUID;
 
 @Singleton
 public class HealthImportService {
+
+    private static final Logger log = LoggerFactory.getLogger(HealthImportService.class);
 
     private final DailyHealthRepository healthRepo;
     private final NutritionDailyRepository nutritionRepo;
@@ -32,26 +36,29 @@ public class HealthImportService {
 
     @Transactional
     public ImportResultDto importHealth(HealthExportDto dto) {
-        // Build per-date maps for each metric
+        log.info("Starting health import");
+
         Map<LocalDate, DailyHealth> healthByDate = new HashMap<>();
         Map<LocalDate, NutritionDaily> nutritionByDate = new HashMap<>();
 
-        mapValues(dto.activeCalories(), healthByDate, (h, v) -> h.setActiveCalories((int) v));
-        mapValues(dto.basalCalories(),  healthByDate, (h, v) -> h.setRestingCalories((int) v));
-        mapValues(dto.stepCount(),      healthByDate, (h, v) -> h.setSteps((int) v));
-        mapValues(dto.exerciseMinutes(),healthByDate, (h, v) -> h.setExerciseMinutes((int) v));
-        mapValues(dto.restingHeartRate(),healthByDate, (h, v) -> h.setRestingHeartRate((int) v));
-        mapValues(dto.heartRateVariability(), healthByDate, (h, v) -> h.setHrvMs(BigDecimal.valueOf(v)));
-        mapValues(dto.oxygenSaturation(), healthByDate, (h, v) -> h.setSpo2Pct(BigDecimal.valueOf(v * 100)));
-        mapValues(dto.respiratoryRate(), healthByDate, (h, v) -> h.setRespiratoryRate(BigDecimal.valueOf(v)));
-        mapValues(dto.wristTemperature(), healthByDate, (h, v) -> h.setWristTemperatureDeltaC(BigDecimal.valueOf(v)));
-        mapValues(dto.vo2Max(), healthByDate, (h, v) -> h.setVo2Max(BigDecimal.valueOf(v)));
-        mapValues(dto.flightsClimbed(), healthByDate, (h, v) -> h.setFlightsClimbed((int) v));
-        mapValues(dto.walkingDistance(), healthByDate, (h, v) -> h.setWalkingDistanceM(BigDecimal.valueOf(v)));
-        mapValues(dto.walkingHeartRate(), healthByDate, (h, v) -> h.setWalkingHeartRateBpm((int) v));
+        mapValues(dto.activeCalories(),      healthByDate, (h, v) -> h.setActiveCalories((int) v));
+        mapValues(dto.basalCalories(),       healthByDate, (h, v) -> h.setRestingCalories((int) v));
+        mapValues(dto.stepCount(),           healthByDate, (h, v) -> h.setSteps((int) v));
+        mapValues(dto.exerciseMinutes(),     healthByDate, (h, v) -> h.setExerciseMinutes((int) v));
+        mapValues(dto.restingHeartRate(),    healthByDate, (h, v) -> h.setRestingHeartRate((int) v));
+        mapValues(dto.heartRateVariability(),healthByDate, (h, v) -> h.setHrvMs(BigDecimal.valueOf(v)));
+        mapValues(dto.oxygenSaturation(),    healthByDate, (h, v) -> h.setSpo2Pct(BigDecimal.valueOf(v * 100)));
+        mapValues(dto.respiratoryRate(),     healthByDate, (h, v) -> h.setRespiratoryRate(BigDecimal.valueOf(v)));
+        mapValues(dto.wristTemperature(),    healthByDate, (h, v) -> h.setWristTemperatureDeltaC(BigDecimal.valueOf(v)));
+        mapValues(dto.vo2Max(),              healthByDate, (h, v) -> h.setVo2Max(BigDecimal.valueOf(v)));
+        mapValues(dto.flightsClimbed(),      healthByDate, (h, v) -> h.setFlightsClimbed((int) v));
+        mapValues(dto.walkingDistance(),     healthByDate, (h, v) -> h.setWalkingDistanceM(BigDecimal.valueOf(v)));
+        mapValues(dto.walkingHeartRate(),    healthByDate, (h, v) -> h.setWalkingHeartRateBpm((int) v));
 
-        // Sleep — has nested stages
+        log.debug("Mapped health metrics for {} date(s)", healthByDate.size());
+
         if (dto.sleepTime() != null) {
+            log.debug("Mapping {} sleep entries", dto.sleepTime().size());
             for (SleepValue s : dto.sleepTime()) {
                 LocalDate date = LocalDate.parse(s.date());
                 DailyHealth h = healthByDate.computeIfAbsent(date, this::newHealth);
@@ -65,37 +72,46 @@ public class HealthImportService {
             }
         }
 
-        // Nutrition (comes from YAZIO → Apple Health sync)
-        mapNutrition(dto.dietaryEnergy(), nutritionByDate, (n, v) -> n.setCaloriesKcal((int) v));
-        mapNutrition(dto.dietaryProtein(), nutritionByDate, (n, v) -> n.setProteinG(BigDecimal.valueOf(v)));
+        mapNutrition(dto.dietaryEnergy(),       nutritionByDate, (n, v) -> n.setCaloriesKcal((int) v));
+        mapNutrition(dto.dietaryProtein(),       nutritionByDate, (n, v) -> n.setProteinG(BigDecimal.valueOf(v)));
         mapNutrition(dto.dietaryCarbohydrates(), nutritionByDate, (n, v) -> n.setCarbsG(BigDecimal.valueOf(v)));
-        mapNutrition(dto.dietaryFatTotal(), nutritionByDate, (n, v) -> n.setFatG(BigDecimal.valueOf(v)));
+        mapNutrition(dto.dietaryFatTotal(),      nutritionByDate, (n, v) -> n.setFatG(BigDecimal.valueOf(v)));
+
+        log.debug("Mapped nutrition for {} date(s)", nutritionByDate.size());
 
         int upserted = 0;
-
         for (Map.Entry<LocalDate, DailyHealth> entry : healthByDate.entrySet()) {
+            LocalDate date = entry.getKey();
             DailyHealth incoming = entry.getValue();
-            DailyHealth existing = healthRepo.findByDate(entry.getKey()).orElse(null);
+            DailyHealth existing = healthRepo.findByDate(date).orElse(null);
             if (existing == null) {
                 healthRepo.save(incoming);
+                log.debug("Inserted health record for {}", date);
             } else {
                 mergeHealth(existing, incoming);
                 healthRepo.update(existing);
+                log.debug("Updated health record for {}", date);
             }
             upserted++;
         }
 
+        int nutritionUpserted = 0;
         for (Map.Entry<LocalDate, NutritionDaily> entry : nutritionByDate.entrySet()) {
+            LocalDate date = entry.getKey();
             NutritionDaily incoming = entry.getValue();
-            NutritionDaily existing = nutritionRepo.findByDate(entry.getKey()).orElse(null);
+            NutritionDaily existing = nutritionRepo.findByDate(date).orElse(null);
             if (existing == null) {
                 nutritionRepo.save(incoming);
+                log.debug("Inserted nutrition record for {}", date);
             } else {
                 mergeNutrition(existing, incoming);
                 nutritionRepo.update(existing);
+                log.debug("Updated nutrition record for {}", date);
             }
+            nutritionUpserted++;
         }
 
+        log.info("Health import done — {} health, {} nutrition records upserted", upserted, nutritionUpserted);
         return ImportResultDto.of(upserted, 0);
     }
 
@@ -158,6 +174,9 @@ public class HealthImportService {
         if (src.getSleepDeepMin() != null)        target.setSleepDeepMin(src.getSleepDeepMin());
         if (src.getSleepCoreMin() != null)        target.setSleepCoreMin(src.getSleepCoreMin());
         if (src.getSleepAwakeMin() != null)       target.setSleepAwakeMin(src.getSleepAwakeMin());
+        if (src.getFlightsClimbed() != null)      target.setFlightsClimbed(src.getFlightsClimbed());
+        if (src.getWalkingDistanceM() != null)    target.setWalkingDistanceM(src.getWalkingDistanceM());
+        if (src.getWalkingHeartRateBpm() != null) target.setWalkingHeartRateBpm(src.getWalkingHeartRateBpm());
     }
 
     private void mergeNutrition(NutritionDaily target, NutritionDaily src) {

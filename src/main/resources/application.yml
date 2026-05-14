@@ -4,6 +4,11 @@ micronaut:
   http:
     client:
       read-timeout: 60s
+    server:
+      netty:
+        access-logger:
+          enabled: true
+          logger-name: HTTP_ACCESS_LOG
   scheduler:
     enabled: true
 
