@@ -15,12 +15,36 @@ import org.slf4j.LoggerFactory;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Singleton
 public class ExerciseImportService {
 
     private static final Logger log = LoggerFactory.getLogger(ExerciseImportService.class);
+
+    /** Formats tried in order when parsing the date string from iOS Shortcuts. */
+    private static final List<DateTimeFormatter> DATE_FORMATS = List.of(
+        DateTimeFormatter.ISO_LOCAL_DATE,                                      // 2026-05-14
+        DateTimeFormatter.ofPattern("d MMM yyyy 'at' HH:mm", Locale.ENGLISH), // 14 May 2026 at 18:08
+        DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH),             // 14 May 2026
+        DateTimeFormatter.ofPattern("MM/dd/yyyy", Locale.ENGLISH),             // 05/14/2026
+        DateTimeFormatter.ofPattern("dd/MM/yyyy", Locale.ENGLISH)              // 14/05/2026
+    );
+
+    private LocalDate parseDate(String raw) {
+        if (raw == null || raw.isBlank()) return LocalDate.now();
+        for (DateTimeFormatter fmt : DATE_FORMATS) {
+            try {
+                return LocalDate.parse(raw.trim(), fmt);
+            } catch (DateTimeParseException ignored) {}
+        }
+        log.warn("Could not parse date '{}' — using today", raw);
+        return LocalDate.now();
+    }
 
     private final ExerciseSessionRepository sessionRepo;
     private final ExerciseSetRepository setRepo;
@@ -43,7 +67,7 @@ public class ExerciseImportService {
 
         ExerciseSession session = new ExerciseSession();
         session.setId(UUID.randomUUID());
-        session.setDate(dto.date() != null ? LocalDate.parse(dto.date()) : LocalDate.now());
+        session.setDate(parseDate(dto.date()));
         if (dto.startedAt() != null) session.setStartedAt(Instant.parse(dto.startedAt()));
         session.setTitle(dto.title());
         session.setNotes(dto.notes());
@@ -83,7 +107,7 @@ public class ExerciseImportService {
 
         ExerciseSession session = new ExerciseSession();
         session.setId(UUID.randomUUID());
-        session.setDate(dto.date() != null ? LocalDate.parse(dto.date()) : LocalDate.now());
+        session.setDate(parseDate(dto.date()));
         session.setTitle(dto.exercise());
         session.setNotes(dto.sets() + " sets × " + dto.repRange() + " reps @ " + dto.weightKg() + " kg");
         sessionRepo.save(session);
