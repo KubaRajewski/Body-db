@@ -31,6 +31,16 @@
         <appender-ref ref="STDOUT"/>
     </logger>
 
+    <!-- Micronaut Serde — DEBUG to catch deserialization errors -->
+    <logger name="io.micronaut.serde" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
+    <!-- Micronaut HTTP server errors — catch 400/500 details -->
+    <logger name="io.micronaut.http.server" level="DEBUG" additivity="false">
+        <appender-ref ref="STDOUT"/>
+    </logger>
+
     <!-- Netty — only errors -->
     <logger name="io.netty" level="WARN" additivity="false">
         <appender-ref ref="STDOUT"/>
